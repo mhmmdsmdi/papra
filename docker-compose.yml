@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  papra-app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: base # Skip build steps; we assume dev scripts handle them
+    container_name: papra-app-dev
+    ports:
+      - "1221:1221"
+    environment:
+      NODE_ENV: development
+      SERVER_SERVE_PUBLIC_DIR: "true"
+      DATABASE_URL: file:./app-data/db/db.sqlite
+      DOCUMENT_STORAGE_FILESYSTEM_ROOT: ./app-data/documents
+      PAPRA_CONFIG_DIR: ./app-data
+      EMAILS_DRY_RUN: "true"
+      CLIENT_BASE_URL: http://localhost:1221
+    volumes:
+      - .:/app:cached
+      - pnpm-store:/pnpm
+    working_dir: /app
+    command: ["pnpm", "dev"] # assumes dev script in your monorepo root
+    restart: unless-stopped
+
+volumes:
+  pnpm-store:

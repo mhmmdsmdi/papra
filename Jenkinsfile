@@ -1,6 +1,11 @@
 pipeline {
   agent any
 
+  tools {
+        go 'go' // Name from Global Tool Configuration
+        docker 'docker'
+    }
+
   environment {
     COMPOSE_PROJECT_NAME = 'papra'
     COMPOSE_FILE = 'docker-compose.yml'

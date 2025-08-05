@@ -1,35 +1,18 @@
-# Base stage with pnpm
-FROM node:22-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g corepack@latest
-RUN corepack enable
-RUN corepack prepare pnpm@10.12.3 --activate
-
-# Build stage
-FROM base AS build
-
-WORKDIR /app
-
-COPY pnpm-lock.yaml ./
-COPY pnpm-workspace.yaml ./
-COPY apps/papra-client/package.json apps/papra-client/package.json
-COPY apps/papra-server/package.json apps/papra-server/package.json
-COPY packages/webhooks/package.json packages/webhooks/package.json
-COPY packages/lecture/package.json packages/lecture/package.json
-
-RUN pnpm install --frozen-lockfile --ignore-scripts
-
-COPY . .
-
-RUN pnpm --filter "@papra/app-client..." run build && \
-    pnpm --filter "@papra/app-server..." run build
-
-RUN pnpm deploy --filter=@papra/app-server --legacy --prod /prod/papra-server
-
 FROM base
 
 WORKDIR /app
+
+# Install Docker CLI and Docker Compose (plugin-based)
+RUN apt-get update && \
+    apt-get install -y ca-certificates curl gnupg lsb-release && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    chmod a+r /etc/apt/keyrings/docker.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli docker-compose-plugin && \
+    docker --version && \
+    docker compose version
 
 COPY --from=build /prod/papra-server ./
 COPY --from=build /app/apps/papra-client/dist ./public
